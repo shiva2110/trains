@@ -2,20 +2,12 @@ package trainroutes;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Queue;
-import java.util.Set;
-
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 public class CityGraph {
 
 		private Map<String, City> cities = new HashMap<String, City>();
-		private static final Logger logger = LogManager.getLogger(CityGraph.class);
 		private static final String NO_ROUTE_MSG = "NO SUCH ROUTE";
 		
 		private CityGraph() {
@@ -33,7 +25,7 @@ public class CityGraph {
 			for(String routeStr: routes) {
 				routeStr = routeStr.trim();
 				if(routeStr.length()!=3) {
-					logger.error("The pattern " + routeStr + " is wrong!");
+					System.out.println("The pattern " + routeStr + " is wrong!");
 				}
 				
 				try {
@@ -47,7 +39,7 @@ public class CityGraph {
 					G.addConnections(id1, id2, dist);
 					
 				} catch(Exception e) {
-					logger.error("The pattern " + routeStr + " is wrong! Failed to parse with an exception " + e.getMessage());
+					System.out.println("The pattern " + routeStr + " is wrong! Failed to parse with an exception " + e.getMessage());
 				}			
 			}
 			
@@ -92,7 +84,7 @@ public class CityGraph {
 			int distance = 0;
 			while(index < path.length) {				
 				if(!curCity.connections.containsKey(path[index])) {
-					System.out.println(NO_ROUTE_MSG);
+					System.out.println("The distance of the route " + pathPattern + ": " + NO_ROUTE_MSG);
 					return NO_ROUTE_MSG;
 				} 
 				
@@ -102,11 +94,11 @@ public class CityGraph {
 			}
 			
 			String distStr = String.valueOf(distance);
-			System.out.println("The distance of the route " + pathPattern + " is " + distStr);
+			System.out.println("The distance of the route " + pathPattern + ": " + distStr);
 			return distStr;			
 		}
 		
-		public List<String> findTrips(String source, String destination, SearchConstraint searchConstraint) {
+		public int findTrips(String source, String destination, SearchConstraint searchConstraint) {
 			
 			if(!cities.containsKey(source) || !cities.containsKey(destination)) {
 				throw new IllegalArgumentException("The source and destination does not exist in this graph!");
@@ -115,11 +107,14 @@ public class CityGraph {
 			List<String> allValidTrips = new ArrayList<String>(); 
 			findTripsDFS(source, destination, searchConstraint, new SearchStats(0,0), "", allValidTrips);
 			
+			System.out.println("Number of trips from " + source + " to " + destination + ": " + allValidTrips.size());
+			System.out.print("\t");
 			for(String trip: allValidTrips) {
-				System.out.println(trip);
+				System.out.print(trip + ", ");
 			}
+			System.out.println();
 			
-			return allValidTrips;
+			return allValidTrips.size();
 			
 		}
 		
@@ -147,32 +142,70 @@ public class CityGraph {
 			}
 		}
 		
-		public int shortestRoute(String source, String dest) {
+		public class Path {
+			public String cityid;
+			public String parentCityId;	
+			
+			public Path(String cityId, String parent) {
+				this.cityid = cityId;
+				this.parentCityId = parent;
+			}
+		}
+		
+		public int shortestRoute(String source, String dest) throws Exception {
 			
 			if(!cities.containsKey(source) || !cities.containsKey(dest)) {
 				throw new IllegalArgumentException("The source and destination does not exist in this graph!");
 			}
 			
-			Map<String, ParentEdge> exploredNodes = new HashMap<String, ParentEdge>();
-			MinHeap<String> minHeap = new MinHeap<String>();
-			String curNode = source;
-			exploredNodes.put(curNode, null);			
-			int dist = 0;		
+			Map<String, Path> exploredNodes = new HashMap<String, Path>();
+			MinHeap<Path> minHeap = new MinHeap<Path>();
 			
-			while(!curNode.equals(dest)) {
+			
+			Path curNode = new Path(source, null);
+			exploredNodes.put(curNode.cityid, curNode);
+			int distanceToCurNode =  0;
+			
+			do {
 				
-				
-				City curCity = cities.get(curNode);
-				for(String adjCity: curCity.connections.keySet()) {					
-					minHeap.add(adjCity, curCity.connections.get(adjCity));
+				City curCity = cities.get(curNode.cityid);
+				for(String adjCity: curCity.connections.keySet()) {
+					if(adjCity.equals(dest)) {
+						String cityStr = adjCity + "(target)";
+						int adjCityDist = curCity.connections.get(adjCity);
+						Path path = new Path(cityStr, curNode.cityid);
+						minHeap.add(path, adjCityDist + distanceToCurNode);
+					} else if(!exploredNodes.containsKey(adjCity)) {
+						int adjCityDist = curCity.connections.get(adjCity);
+						Path path = new Path(adjCity, curNode.cityid);
+						minHeap.add(path, adjCityDist + distanceToCurNode);
+					} 
 				}
 				
-				HeapNode nextHeapNode = minHeap.extractMin();
-				exploredNodes.put(nextHeapNode, new ParentEdge(curNode, ))
+				HeapNode<Path> nextHeapNode = minHeap.extractMin();
+				if(nextHeapNode == null) {
+					break;
+				}
+				exploredNodes.put(nextHeapNode.data.cityid, nextHeapNode.data);
+				curNode = nextHeapNode.data;
+				distanceToCurNode = nextHeapNode.val;
+			} while(!curNode.cityid.equals(dest + "(target)"));
+				
+			if(curNode.cityid.equals(dest + "(target)")) {
+				System.out.println("Shortest distance from " + source + " to " + dest + ": " + distanceToCurNode);
+				String s = "";
+				Path path = exploredNodes.get(curNode.cityid);
+				while(path!=null) {
+					s = path.cityid + "->" + s;
+					path = exploredNodes.get(path.parentCityId);
+				}
+				System.out.println("\t path: " + s);
+			} else {
+				throw new Exception("Destination is not found within the search limits!");
 			}
 			
+			
+			return distanceToCurNode;
+			
 		}
-		
-		public int shortestRouteDFS(String source, String dest, int distance, )
-		
 }

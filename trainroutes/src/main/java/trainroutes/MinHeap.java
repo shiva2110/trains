@@ -8,12 +8,16 @@ import java.util.Map;
 public class MinHeap<T> {
 	
 	
-	Map<T, Integer> indexMap = new HashMap<T, Integer>();
-	List<HeapNode<T>> heapArr = new ArrayList<HeapNode<T>>();
+	protected Map<T, Integer> indexMap = new HashMap<T, Integer>();
+	protected List<HeapNode<T>> heapArr = new ArrayList<HeapNode<T>>();
 	public int heapSize;
 	
-	public HeapNode extractMin() {
-		HeapNode minNode = heapArr.get(0);
+	public HeapNode<T> extractMin() {
+		if(heapArr.isEmpty()) {
+			return null;
+		}
+		
+		HeapNode<T> minNode = heapArr.get(0);
 		
 		exchange(0, heapArr.size()-1);
 		indexMap.remove(heapArr.get(heapArr.size()-1));
@@ -39,7 +43,7 @@ public class MinHeap<T> {
 	public void update(T data, int val) {
 		int index = indexMap.get(data);
 		if(val < heapArr.get(index).val) {
-			heapArr.set(index, new HeapNode(data,val));
+			heapArr.set(index, new HeapNode<T>(data,val));
 			heapifyUp(index);
 		}
 	}
@@ -84,13 +88,14 @@ public class MinHeap<T> {
 	
 	public void exchange(int index, int index2) {
 		//update index map
-		T data = (T) heapArr.get(index);
-		T data2 = (T) heapArr.get(index2);
-		indexMap.put(data2, index);
-		indexMap.put(data, index2);
+		HeapNode<T> heapNode = heapArr.get(index);
+		HeapNode<T> heapNode2 = heapArr.get(index2);
+		
+		indexMap.put(heapNode2.data, index);
+		indexMap.put(heapNode.data, index2);
 		
 		//update the heapArr
-		HeapNode temp = heapArr.get(index);
+		HeapNode<T> temp = heapArr.get(index);
 		heapArr.set(index, heapArr.get(index2));
 		heapArr.set(index2, temp);
 	}
